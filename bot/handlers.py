@@ -37,6 +37,7 @@ def register_handlers(app: AsyncApp) -> None:
 
 
 async def handle_mention(event: dict, client: AsyncWebClient, say) -> None:
+    logger.info("app_mention received: channel=%s user=%s ts=%s", event.get("channel"), event.get("user"), event.get("ts"))
     await _dispatch(event, client)
 
 
