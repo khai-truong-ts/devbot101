@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "devbot101"
+version = "0.1.0"
+description = "Slack bot powered by Claude CLI"
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.11"
+slack-bolt = ">=1.27.0,<2.0.0"
+asyncpg = ">=0.29.0,<0.32.0"
+psycopg2-binary = ">=2.9,<3.0"
+python-dotenv = ">=1.0,<2.0"
+cachetools = ">=5.0,<6.0"
+alembic = ">=1.13,<2.0"
+sqlalchemy = ">=2.0,<3.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.0"
+pytest-asyncio = "^0.24"
+pytest-mock = "^3.14"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

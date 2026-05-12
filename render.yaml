@@ -2,10 +2,35 @@ services:
   - type: web
     name: devbot101
     runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
-      - key: SLACK_APP_TOKEN
-        sync: false
       - key: SLACK_BOT_TOKEN
         sync: false
-      - key: CLAUDE_API_KEY
+      - key: SLACK_APP_TOKEN
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ALLOWED_CHANNEL_IDS
+        sync: false
+      - key: ALLOWED_USER_IDS
+        value: ""
+      - key: MAX_CONCURRENT_SESSIONS
+        value: "10"
+      - key: AUDIT_LOG_ENABLED
+        value: "false"
+      - key: DIRECT_REPLY_ENABLED
+        value: "false"
+      - key: CLAUDE_TIMEOUT_SECONDS
+        value: "600"
+      - key: SLACK_MAX_CHARS
+        value: "3800"
+      - key: SESSION_FILE_PATH
+        value: "/workspace/sessions.json"
+      - key: DATABASE_URL
+        sync: false
+
+databases:
+  - name: devbot101-db
+    databaseName: botdb
+    user: bot
+    plan: free
