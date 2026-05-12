@@ -37,4 +37,4 @@ def validate():
         _log.warning("Neither ANTHROPIC_API_KEY nor OAuth credentials found — Claude calls will fail")
 
     if not ALLOWED_CHANNEL_IDS:
-        _log.warning("ALLOWED_CHANNEL_IDS is not set — all channel requests will be rejected")
+        _log.info("ALLOWED_CHANNEL_IDS is not set — all channels are allowed")

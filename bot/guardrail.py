@@ -27,8 +27,7 @@ def is_allowed_channel(channel_id: str, user_id: str = "") -> bool:
         return True
     allowed = {c.strip() for c in config.ALLOWED_CHANNEL_IDS.split(",") if c.strip()}
     if not allowed:
-        logger.warning("ALLOWED_CHANNEL_IDS empty — rejecting channel %s", channel_id)
-        return False
+        return True
     return channel_id in allowed
 
 
