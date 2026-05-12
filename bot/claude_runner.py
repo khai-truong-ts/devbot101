@@ -35,8 +35,9 @@ async def run_claude(prompt: str, session_id: str | None = None) -> RunResult:
     env = {
         "PATH": os.environ.get("PATH", ""),
         "HOME": os.environ.get("HOME", ""),
-        "ANTHROPIC_API_KEY": config.ANTHROPIC_API_KEY,
     }
+    if config.ANTHROPIC_API_KEY:
+        env["ANTHROPIC_API_KEY"] = config.ANTHROPIC_API_KEY
 
     logger.info("Spawning Claude (session=%s)", session_id)
 

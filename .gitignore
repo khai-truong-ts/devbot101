@@ -1,4 +1,6 @@
 .env
+.claude/
+.claude.json
 __pycache__/
 *.pyc
 *.pyo

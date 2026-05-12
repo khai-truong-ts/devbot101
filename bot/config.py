@@ -25,13 +25,16 @@ def validate():
     required = {
         "SLACK_BOT_TOKEN": SLACK_BOT_TOKEN,
         "SLACK_APP_TOKEN": SLACK_APP_TOKEN,
-        "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
     }
     missing = [k for k, v in required.items() if not v]
     if missing:
         raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
+
+    import logging
+    _log = logging.getLogger(__name__)
+
+    if not ANTHROPIC_API_KEY and not os.path.exists(os.path.join(os.environ.get("HOME", ""), ".claude", ".credentials.json")):
+        _log.warning("Neither ANTHROPIC_API_KEY nor OAuth credentials found — Claude calls will fail")
+
     if not ALLOWED_CHANNEL_IDS:
-        import logging
-        logging.getLogger(__name__).warning(
-            "ALLOWED_CHANNEL_IDS is not set — all channel requests will be rejected"
-        )
+        _log.warning("ALLOWED_CHANNEL_IDS is not set — all channel requests will be rejected")

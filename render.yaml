@@ -10,6 +10,8 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: CLAUDE_CREDENTIALS_B64
+        sync: false
       - key: ALLOWED_CHANNEL_IDS
         sync: false
       - key: ALLOWED_USER_IDS

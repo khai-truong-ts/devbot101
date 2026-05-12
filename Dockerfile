@@ -25,10 +25,12 @@ COPY bot/ /workspace/bot/
 COPY alembic/ /workspace/alembic/
 COPY alembic.ini /workspace/alembic.ini
 COPY sandbox/ /workspace/sandbox/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 RUN chown -R botuser:botuser /workspace
 
 USER botuser
 ENV HOME=/home/botuser
 
-CMD ["python", "-m", "bot.main"]
+CMD ["/entrypoint.sh"]
