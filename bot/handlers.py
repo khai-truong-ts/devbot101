@@ -62,7 +62,7 @@ async def _dispatch(event: dict, client: AsyncWebClient) -> None:
     thread_ts = event.get("thread_ts") or ts
 
     if not guardrail.is_allowed_channel(channel, user_id):
-        logger.info("Rejected event from channel %s user %s", channel, user_id)
+        logger.warning("Rejected event from channel=%s user=%s (not in ALLOWED_CHANNEL_IDS)", channel, user_id)
         return
 
     sem = _get_semaphore()
@@ -77,6 +77,16 @@ async def _dispatch(event: dict, client: AsyncWebClient) -> None:
     await sem.acquire()
     try:
         await _run_with_thinking(event, client, channel, thread_ts, user_id, ts)
+    except Exception:
+        logger.exception("Unhandled error in _run_with_thinking for channel=%s", channel)
+        try:
+            await client.chat_postMessage(
+                channel=channel,
+                thread_ts=thread_ts,
+                text=f"<@{user_id}> ❌ Internal error — check bot logs.",
+            )
+        except Exception:
+            logger.exception("Failed to send error message to Slack")
     finally:
         sem.release()
 
