@@ -40,7 +40,7 @@ def ask_claude(channel_id: str, user_message: str) -> str:
     }
 
     result = subprocess.run(
-        ["claude", "-p", prompt, "--dangerously-skip-permissions"],
+        ["claude", "-p", prompt],
         capture_output=True,
         text=True,
         timeout=120,
