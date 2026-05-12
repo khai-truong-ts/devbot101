@@ -48,7 +48,8 @@ def ask_claude(channel_id: str, user_message: str) -> str:
     )
 
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "claude CLI returned non-zero exit")
+        logger.error("claude exit=%d stdout=%r stderr=%r", result.returncode, result.stdout, result.stderr)
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or f"claude CLI exit code {result.returncode}")
 
     reply = result.stdout.strip()
     history.append({"role": "assistant", "content": reply})
