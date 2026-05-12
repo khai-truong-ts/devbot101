@@ -1,5 +1,4 @@
 import os
-import subprocess
 import threading
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -7,6 +6,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+import anthropic
 
 load_dotenv()
 
@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 
 app = App(token=os.environ["SLACK_BOT_TOKEN"])
 
+# OAuth token (sk-ant-oat01-...) uses auth_token= which sends Authorization: Bearer header
+# API key (sk-ant-api03-...) uses api_key= which sends x-api-key header
+claude_key = os.environ["CLAUDE_API_KEY"]
+if claude_key.startswith("sk-ant-oat"):
+    claude = anthropic.Anthropic(auth_token=claude_key)
+else:
+    claude = anthropic.Anthropic(api_key=claude_key)
+
 CONVERSATION_HISTORY: dict[str, list] = {}
 
 
@@ -22,36 +30,17 @@ def ask_claude(channel_id: str, user_message: str) -> str:
     history = CONVERSATION_HISTORY.setdefault(channel_id, [])
     history.append({"role": "user", "content": user_message})
 
-    # Keep last 20 messages
     if len(history) > 20:
         history[:] = history[-20:]
 
-    # Build conversation context as a single prompt for the CLI
-    parts = []
-    for msg in history[:-1]:  # everything except the latest user message
-        label = "Human" if msg["role"] == "user" else "Assistant"
-        parts.append(f"{label}: {msg['content']}")
-    parts.append(f"Human: {user_message}")
-    prompt = "\n\n".join(parts)
-
-    env = {
-        **os.environ,
-        "ANTHROPIC_API_KEY": os.environ["CLAUDE_API_KEY"],
-    }
-
-    result = subprocess.run(
-        ["claude", "-p", prompt],
-        capture_output=True,
-        text=True,
-        timeout=120,
-        env=env,
+    response = claude.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=4096,
+        system="You are a helpful assistant in a Slack workspace. Be concise and clear.",
+        messages=history,
     )
 
-    if result.returncode != 0:
-        logger.error("claude exit=%d stdout=%r stderr=%r", result.returncode, result.stdout, result.stderr)
-        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or f"claude CLI exit code {result.returncode}")
-
-    reply = result.stdout.strip()
+    reply = response.content[0].text
     history.append({"role": "assistant", "content": reply})
     return reply
 
@@ -75,7 +64,7 @@ def handle_mention(event, say, client):
         reply = ask_claude(channel, user_message)
         say(text=reply, thread_ts=thread_ts)
     except Exception as e:
-        logger.exception("Claude CLI error")
+        logger.exception("Claude API error")
         say(text=f"Sorry, something went wrong: {e}", thread_ts=thread_ts)
 
 
