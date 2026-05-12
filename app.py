@@ -1,4 +1,5 @@
 import os
+import subprocess
 import threading
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -6,7 +7,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-import anthropic
 
 load_dotenv()
 
@@ -14,7 +14,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = App(token=os.environ["SLACK_BOT_TOKEN"])
-claude = anthropic.Anthropic(api_key=os.environ["CLAUDE_API_KEY"])
 
 CONVERSATION_HISTORY: dict[str, list] = {}
 
@@ -23,18 +22,35 @@ def ask_claude(channel_id: str, user_message: str) -> str:
     history = CONVERSATION_HISTORY.setdefault(channel_id, [])
     history.append({"role": "user", "content": user_message})
 
-    # Keep last 20 messages to avoid token bloat
+    # Keep last 20 messages
     if len(history) > 20:
         history[:] = history[-20:]
 
-    response = claude.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        system="You are a helpful assistant in a Slack workspace. Be concise and clear.",
-        messages=history,
+    # Build conversation context as a single prompt for the CLI
+    parts = []
+    for msg in history[:-1]:  # everything except the latest user message
+        label = "Human" if msg["role"] == "user" else "Assistant"
+        parts.append(f"{label}: {msg['content']}")
+    parts.append(f"Human: {user_message}")
+    prompt = "\n\n".join(parts)
+
+    env = {
+        **os.environ,
+        "ANTHROPIC_API_KEY": os.environ["CLAUDE_API_KEY"],
+    }
+
+    result = subprocess.run(
+        ["claude", "-p", prompt, "--dangerously-skip-permissions"],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=env,
     )
 
-    reply = response.content[0].text
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "claude CLI returned non-zero exit")
+
+    reply = result.stdout.strip()
     history.append({"role": "assistant", "content": reply})
     return reply
 
@@ -45,7 +61,6 @@ def handle_mention(event, say, client):
     thread_ts = event.get("thread_ts", event["ts"])
     bot_user_id = client.auth_test()["user_id"]
 
-    # Strip the bot mention from the message
     raw_text = event.get("text", "")
     user_message = raw_text.replace(f"<@{bot_user_id}>", "").strip()
 
@@ -59,11 +74,10 @@ def handle_mention(event, say, client):
         reply = ask_claude(channel, user_message)
         say(text=reply, thread_ts=thread_ts)
     except Exception as e:
-        logger.exception("Claude API error")
+        logger.exception("Claude CLI error")
         say(text=f"Sorry, something went wrong: {e}", thread_ts=thread_ts)
 
 
-# Lightweight health-check server so Render keeps the service alive
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -71,7 +85,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"OK")
 
     def log_message(self, *args):
-        pass  # silence access logs
+        pass
 
 
 def run_health_server():

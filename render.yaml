@@ -1,9 +1,7 @@
 services:
   - type: web
     name: devbot101
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    runtime: docker
     envVars:
       - key: SLACK_APP_TOKEN
         sync: false
